@@ -73,8 +73,69 @@ docker rmi $(docker images -a -q)
 
 
 
--------------------Jenkins Script--------
+----------------------------------------------------Jenkins Script------------------------------------------------------------
 
+Jenkins CI/CD Pipeline| Create Jenkins pipeline for Spring boot application. Pushing the Docker image into AWS ECR by running the container and accessing it in the browser.
+https://github.com/sannjobs/JenkinsCICD
+https://www.youtube.com/watch?v=W2jSVf7bNuQ
+
+============================================================================================================================
+pipeline{
+    
+    agent any
+    environment {
+        registry = "826387312847.dkr.ecr.ap-south-1.amazonaws.com/cicd-java-springboot"
+    }
+    
+    stages {
+        stage('Cloning Git') {
+            steps {
+                checkout([$class: 'GitSCM', branches: [[name: '*/main']], userRemoteConfigs: [[url: 'https://github.com/sannjobs/JenkinsCICD']]])
+            }
+        }
+        
+                // Building the JAR file
+        stage('Building JAR') {
+            steps {
+                sh 'mvn clean package'
+            }
+        }
+        
+    // Uploading Docker images into AWS ECR  
+    // go to server instance/Actions/Security/ModifyIAM role check for Role with policy AmazonEC2ContainerRegistryFullAccess,AmazonEC2ContainerRegistryPowerUser,AmazonElasticContainerRegistryPublicFullAccess
+    // sudo chmod 666 /var/run/docker.sock if error "permission denied while trying to connect to the Docker daemon socket at unix:///var/run/docker.sock"
+       stage('Pushing to ECR') {
+            steps{  
+                script {
+                    sh 'aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin 826387312847.dkr.ecr.ap-south-1.amazonaws.com'
+					sh 'docker build -t cicd-java-springboot .'
+					sh 'docker tag cicd-java-springboot:latest 826387312847.dkr.ecr.ap-south-1.amazonaws.com/cicd-java-springboot:latest'
+					sh 'docker push 826387312847.dkr.ecr.ap-south-1.amazonaws.com/cicd-java-springboot:latest'
+                }
+            }
+        }
+        
+        // Stopping Docker containers for cleaner Docker run
+        stage('Stop previous containers') {
+            steps {
+                sh 'docker stop myjavaContainer || true'
+                sh 'docker rm myjavaContainer || true'
+            }
+        }
+
+        // Running Docker container and ECRrepoURI:latest='826387312847.dkr.ecr.ap-south-1.amazonaws.com/cicd-java-springboot'
+        stage('Docker Run') {
+            steps {
+                sh 'docker run -d -p 8081:8081 --name myjavaContainer 826387312847.dkr.ecr.ap-south-1.amazonaws.com/cicd-java-springboot:latest'
+            }
+        }
+
+    }
+}
+
+
+
+================================================OLD==============================================
 pipeline {
     agent any
     environment {
