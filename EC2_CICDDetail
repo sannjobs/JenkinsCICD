@@ -78,7 +78,7 @@ docker rmi $(docker images -a -q)
 pipeline {
     agent any
     environment {
-        registry = "<your_account_id>.dkr.ecr.ap-south-1.amazonaws.com/my-cicd-repo"
+        registry = "826387312847.dkr.ecr.ap-south-1.amazonaws.com/cicd-java-springboot"
     }
 
     stages {
